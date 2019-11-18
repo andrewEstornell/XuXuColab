@@ -10,8 +10,14 @@ class Gomoku:
         self.board = np.zeros([size, size]).flatten()
 
     def is_winning_move(self, board, size, in_a_row, player, move):
+        # Takes in a single move (x, y) and checks if there is a row, column, diagonal
+        # or negative diagonal branching off that move
+        # Checks only for the given player
+        # Does not check the entire board
         x, y = move
         # ROW
+        # Iterates to the right (i1) then to the left (i2) of (x, y) checking for a win
+        # l counts the total length of the segment, if l == in_a_row then player has won
         l, i1, i2 = 1, 1, 1
         while x + i1 < size and board[size*(x + i1) + y] == player:
             l += 1
@@ -22,6 +28,7 @@ class Gomoku:
         if l >= in_a_row:
             return True
         # COL
+        # Same idea as row
         l, j1, j2 = 1, 1, 1
         while y + j1 < size and board[size*x + y + j1] == player:
             l += 1
@@ -32,6 +39,7 @@ class Gomoku:
         if l >= in_a_row:
             return True
         # DIAG
+        # Same idea as row
         l, i1, j1, i2, j2 = 1, 1, 1, 1, 1
         while x + i1 < size and y + j1 < size and board[size*(x + i1) + y + j1] == player:
             l += 1
@@ -44,6 +52,7 @@ class Gomoku:
         if l >= in_a_row:
             return True
         # NEG DIAG 
+        # Same idea as row
         l, i1, j1, i2, j2 = 1, 1, 1, 1, 1
         while x + i1 < size and y - j1 >= 0 and board[size*(x + i1) + y - j1] == player:
             l += 1
@@ -57,6 +66,7 @@ class Gomoku:
             return True
         
     def display_board(self, board, size):
+        # Prints the board out to the terminal
         for i in range(size):
             print('|', end='')
             for j in range(size):
@@ -69,7 +79,8 @@ class Gomoku:
             print('')        
 
     def make_move(self, board, size, move, player):
-        if board[size*move[0] + move[1]] == 0:
+        # Validates the move then makes it
+        if 0 <= move[0] < size and 0 <= move[1] < size and board[size*move[0] + move[1]] == 0:
             board[size*move[0] + move[1]] = player
             return True
         return False
@@ -82,114 +93,134 @@ class Agent:
         self.game = game
         self.M = game.size**2*game.in_a_row**3
         self.hash_table = {}
-        self.threat_scores = self.generate_threat_scores()
+        #self.threat_scores = self.generate_threat_scores()
 
-    def generate_threat_scores(self):
-        scores = {}
-        for i in range(self.game.in_a_row):
-            #open
-            print(0)
-            #close
+    #def generate_threat_scores(self):
+    #    scores = {}
+    #    for i in range(self.game.in_a_row):
+    #        #open
+    #        print(0)
+    #        #close
 
     def get_best_move(self, board, size, in_a_row):
+        # Rest hash table of previously seen boards
         self.hash_table = {}
+        # Returns the best move for the agent
         return self.maxi(board, size, in_a_row, 0, float('-inf'), float('inf'), (-1, -1))    
 
     def maxi(self, board, size, in_a_row, depth, alpha, beta, last_move):
-        #print('maxi', depth, alpha, beta, last_move)
-        #self.game.display_board(board, size)
-        #print(board)
-        #print("####################")
-        #time.sleep(1.5)
         
-        # Gets actual move on the AIs first call of this function
+        # At depth 0 we return the best move and not just the value of the best move
+        # Keeping track of the best move need only be done when we want to actually make the move
+        # i.e. at depth 0
+        # Other depths return only the value of the best move
         if depth == 0:
             moves = self.get_valid_moves(board, size)
+            moves = self.threat_search(board, size, in_a_row, self.player, moves)
+            # Ranks all moves with a score, then returns the highest scored move
             scores = sorted([
                 (self.mini(board, size, in_a_row, depth + 1, alpha, beta, move), move) for move in moves
                 ])[::-1]
             for score in scores:
                 print(score)
             return scores[0][1]
-        # MAKE MOVE
+        
+        # If we are not at depth 0, we run regular mini-max
+        # Make the move proposed at the previous depth, this is the last move of the opponent
         board[size*last_move[0] + last_move[1]] = -self.player
+        # Check if we have seen and scored this board before
+        # If we have, we simply retturn that score and dont need to compute anything further
         if tuple(board) in self.hash_table:
             val = self.hash_table[tuple(board)]
             board[size*last_move[0] + last_move[1]] = 0
             return val
+        # Check if the move made by the opponent was a winning move
+        # If so, we have lost
         if self.game.is_winning_move(board, size, in_a_row, -self.player, last_move):
             self.hash_table[tuple(board)] = -self.M + depth
-            #self.game.display_board(board, size)
             board[size*last_move[0] + last_move[1]] = 0
             return -self.M + depth
+        # Check if our evalutation is complete
+        # If so return a heursitic evaulation of the current board
         if depth == self.max_depth:
             val = -self.heuristic_eval(board, size, -self.player)
             self.hash_table[tuple(board)] = val
             board[size*last_move[0] + last_move[1]] = 0
             return val
+        # If the game isnt over, we havent seen the board before, and we arent done searching
+        # then we generate all the possible moves, remove irrelivant moves based on threats
         moves = self.get_valid_moves(board, size)
         if moves == []:
             return 0
+        # Select only the moves with actual threats
         else:
             moves = self.threat_search(board, size, in_a_row, self.player, moves)
         best_val = float('-inf')
+        # Check each move for its value
         for move in moves:
+            # Recursive call to simulate our opponents next best move
             val = self.mini(board, size, in_a_row, depth + 1, alpha, beta, move)
             best_val = max(val, best_val)
             alpha = max(alpha, best_val)
             if alpha >= beta:
-                #print('maxi', alpha, beta)
                 break
         self.hash_table[tuple(board)] = best_val
         board[size*last_move[0] + last_move[1]] = 0
         return best_val
 
     def mini(self, board, size, in_a_row, depth, alpha, beta, last_move):
-        #print('Mini', depth, alpha, beta, last_move)
-        #self.game.display_board(board, size)
-        #print(board)
-        #print("######################")
-        #time.sleep(1.5)
-        
-        # Make move
+        # Make move of previous player (us)
         board[size*last_move[0] + last_move[1]] = self.player
-        # Already seen position
+        # Check if this position has been seen before
+        # If it has, simply return the previously loged value
         if tuple(board) in self.hash_table:
             val = self.hash_table[tuple(board)]
             board[size*last_move[0] + last_move[1]] = 0
             return val
-        # Game over
+        # Check if the move we last made won the game
         if self.game.is_winning_move(board, size, in_a_row, self.player, last_move):
             self.hash_table[tuple(board)] = self.M - depth
             board[size*last_move[0] + last_move[1]] = 0
             return self.M - depth
-        # No more searching
+        # Check if we are done searching
+        # If we are, return a heuristic evaluation of the current position
         if depth == self.max_depth:
             val = self.heuristic_eval(board, size, self.player)
             self.hash_table[tuple(board)] = val
             board[size*last_move[0] + last_move[1]] = 0
             return val
+        # If no one has won, we havent seen the position before, and we arent done searching
+        # Then we iterate through all possible moves, remove the ones with no threats
+        # and return the best move
         best_val = float('inf')
         moves = self.get_valid_moves(board, size)
         if moves == []:
             return 0
         else:
+            # Remove moves that have no threat value
             moves = self.threat_search(board, size, in_a_row, -self.player, moves)
         for move in moves:
+            # Recursive call to our response to the opponents move
             val = self.maxi(board, size, in_a_row, depth + 1, alpha, beta, move)
             best_val = min(val, best_val)
             beta = min(best_val, beta)
             if alpha >= beta:
-                #print('mini',  alpha, beta)
                 break
+        # Save the value of this position
         self.hash_table[tuple(board)] = best_val
+        # Undo move
         board[size*last_move[0] + last_move[1]] = 0
         return best_val
         
     def heuristic_eval(self, board, size, player):
+        # Return some value that reprsents a 'good' guess of the value of the current position
+
+        # Current version only checks values for the given player
         val = 0
         for i in range(size):
             for j in range(size):
+                # If the current square is occupied by the player
+                # We give value sum(k^k for k = 1 to length of chain)
                 if board[size*i + j] == player:
                     k = 1
                     while i + k < size and board[size*(i + k) + j] == player:
@@ -227,6 +258,10 @@ class Agent:
         ###### NOT COMPLETE #######
         ###########################
         ###########################
+        
+        ##############################################
+        # NEED TO ADD THREAT SEARCH FOR BOTH PLAYERS #
+        ##############################################
         threats = [[0, move] for move in moves]
         directions = ((1, 0), (0, 1), (1, 1), (1, -1))
         for i in range(len(moves)):
