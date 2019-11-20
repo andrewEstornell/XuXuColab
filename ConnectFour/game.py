@@ -237,6 +237,9 @@ def display_board_text(board, n):
 
 
 
+
+
+
 width = 800
 height = 800
 size = (width, height)
