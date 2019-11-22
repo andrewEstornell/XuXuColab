@@ -1,7 +1,17 @@
 import numpy as np
+import gomoku as gk
 
-n = 6
-zeros = np.zeros([n, n])
-for i in range(n):
-    zeros[i][i] = 1
+game = gk.Gomoku(8, 5)
+agent = gk.Agent(1, 7, 1, game)
 
+board = [[0, 0, 0, 0, 0, 0, 0, 0],
+         [0, 0, 0, 0, 0, 0, 0, 0],
+         [0, 0, 1, 1, 0, 0, 0, 0],
+         [0, 0, 0, 0, 1, 0, 0, 0],
+         [0, 0, 1, 0, 1, 0, 0, 0],
+         [0, 0, 1, 0, 1, 0, 0, 0],
+         [0, 0, 0, 0, 0, 0, 0, 0],
+         [0, 0, 0, 0, 0, 0, 0, 0]]
+
+board = np.array(board).flatten()
+agent.threat_space_test(board, 8, 5, 1, [])

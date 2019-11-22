@@ -116,7 +116,7 @@ class Agent:
         # Other depths return only the value of the best move
         if depth == 0:
             moves = self.get_valid_moves(board, size)
-            moves = self.threat_search(board, size, in_a_row, self.player, moves)
+            moves = self.threat_space_test(board, size, in_a_row, moves)
             # Ranks all moves with a score, then returns the highest scored move
             scores = sorted([
                 (self.mini(board, size, in_a_row, depth + 1, alpha, beta, move), move) for move in moves
@@ -154,7 +154,7 @@ class Agent:
             return 0
         # Select only the moves with actual threats
         else:
-            moves = self.threat_search(board, size, in_a_row, self.player, moves)
+            moves = self.threat_space_test(board, size, in_a_row, moves)
         best_val = float('-inf')
         # Check each move for its value
         for move in moves:
@@ -198,7 +198,7 @@ class Agent:
             return 0
         else:
             # Remove moves that have no threat value
-            moves = self.threat_search(board, size, in_a_row, -self.player, moves)
+            moves = self.threat_space_test(board, size, in_a_row, moves)
         for move in moves:
             # Recursive call to our response to the opponents move
             val = self.maxi(board, size, in_a_row, depth + 1, alpha, beta, move)
@@ -216,6 +216,7 @@ class Agent:
         # Return some value that reprsents a 'good' guess of the value of the current position
 
         # Current version only checks values for the given player
+        return 0
         val = 0
         for i in range(size):
             for j in range(size):
@@ -281,21 +282,38 @@ class Agent:
                     k2 += 1
                     l += 1
                 # open
-                if (k2 == 0 and 0 <= x + k1*d[0] < size and 0 <= y + k1*d[1] < size and board[size*(x + k1*d[0]) + y + k1*d[1]] == 0) or \
-                   (k1 == 0 and 0 <= x - k1*d[0] < size and 0 <= y - k2*d[1] < size and board[size*(x - k2*d[0]) + y + k2*d[1]] == 0):
-                    threats[i][0] += l**4                 
+                if (k2 == 1 and k1 > 1 and 0 <= x + k1*d[0] < size and 0 <= y + k1*d[1] < size and board[size*(x + k1*d[0]) + y + k1*d[1]] == 0) or \
+                   (k1 == 1 and k2 > 1 and 0 <= x - k1*d[0] < size and 0 <= y - k2*d[1] < size and board[size*(x - k2*d[0]) + y + k2*d[1]] == 0):
+                    print("open p1")
+                    print(k2, k1)
+                    print([board[size*(x -i*d[0]) + y-i*d[0]] for i in range(-k2, k1 + 1) ])
+                    if l == 3:
+                       print("four")
+                       threats[i][0] += 100
+                    else:
+                        threats[i][0] += l + 1          
                 # gaping
-                elif k1 > 0 and k2 > 0 and 0 <= x + k1*d[0] < size and 0 <= y + k1*d[1] < size and 0 <= x - k2*d[0] < size and 0 <= y - k2*d[1] < size and \
+                elif k1 > 1 and k2 > 1 and 0 <= x + k1*d[0] < size and 0 <= y + k1*d[1] < size and 0 <= x - k2*d[0] < size and 0 <= y - k2*d[1] < size and \
                      board[size*(x + k1*d[0]) + y + k1*d[1]] == 0 and board[size*(x - k2*d[0]) + y - k2*d[1]] == 0:
-                    threats[i][0] += l**4
+                    print("gaping p1")
+                    if l == 3:
+                       print("four")
+                       threats[i][0] += 100
+                    else:
+                        threats[i][0] += l + 1
 
                 # gaping closed 
                 #elif (k2 == 0 and 0 <= x + k1*d[0] < size and (0 <= y + k1*d[1] < size or board[size*(x + k1*d[0]) + y + k1*d[1]] == -player)):
 
                 # closed
-                elif (k2 == 0 and (x + k1*d[0] >= size or x + k1*d[0] < 0 or y + k1*d[1] >= size or y + k1*d[1] < 0 or board[size*(x + k1*d[0]) + y + k1*d[1]] == -p)) or \
-                     (k1 == 0 and (x - k2*d[0] >= size or x - k2*d[0] < 0 or y - k2*d[1] >= size or y - k2*d[1] < 0 or board[size*(x - k2*d[0]) + y - k2*d[1]] == -p)):
-                    threats[i][0] += l
+                elif (k2 == 1 and (x + k1*d[0] >= size or x + k1*d[0] < 0 or y + k1*d[1] >= size or y + k1*d[1] < 0 or board[size*(x + k1*d[0]) + y + k1*d[1]] == -p)) or \
+                     (k1 == 1 and (x - k2*d[0] >= size or x - k2*d[0] < 0 or y - k2*d[1] >= size or y - k2*d[1] < 0 or board[size*(x - k2*d[0]) + y - k2*d[1]] == -p)):
+                    print("closed p1")
+                    if l == 3:
+                       print("four")
+                       threats[i][0] += 100
+                    else:
+                        threats[i][0] += l - 2  
                 #######################################
                 ######### CHECK OPTS THREATS ##########
                 #######################################
@@ -308,32 +326,96 @@ class Agent:
                     k2 += 1
                     l += 1
                 # open
-                if (k2 == 0 and 0 <= x + k1*d[0] < size and 0 <= y + k1*d[1] < size and board[size*(x + k1*d[0]) + y + k1*d[1]] == 0) or \
-                   (k1 == 0 and 0 <= x - k1*d[0] < size and 0 <= y - k2*d[1] < size and board[size*(x - k2*d[0]) + y + k2*d[1]] == 0):
-                    threats[i][0] += l**4                 
+                if (k2 == 1 and k1 > 1 and 0 <= x + k1*d[0] < size and 0 <= y + k1*d[1] < size and board[size*(x + k1*d[0]) + y + k1*d[1]] == 0) or \
+                   (k1 == 1 and k2 > 1 and 0 <= x - k1*d[0] < size and 0 <= y - k2*d[1] < size and board[size*(x - k2*d[0]) + y + k2*d[1]] == 0):
+                    print("open p1")
+                    print(k2, k1)
+                    print([board[size*(x -i*d[0]) + y-i*d[0]] for i in range(-k2, k1 + 1) ])
+                    if l == 3:
+                       print("four")
+                       threats[i][0] += 100
+                    else:
+                        threats[i][0] += l + 1               
                 # gaping
-                elif k1 > 0 and k2 > 0 and 0 <= x + k1*d[0] < size and 0 <= y + k1*d[1] < size and 0 <= x - k2*d[0] < size and 0 <= y - k2*d[1] < size and \
+                elif k1 > 1 and k2 > 1 and 0 <= x + k1*d[0] < size and 0 <= y + k1*d[1] < size and 0 <= x - k2*d[0] < size and 0 <= y - k2*d[1] < size and \
                      board[size*(x + k1*d[0]) + y + k1*d[1]] == 0 and board[size*(x - k2*d[0]) + y - k2*d[1]] == 0:
-                    threats[i][0] += l**4
+                    print("gaping p2")
+                    if l == 3:
+                       print("four")
+                       threats[i][0] += 100
+                    else:
+                        threats[i][0] += l + 1  
 
                 # gaping closed 
                 #elif (k2 == 0 and 0 <= x + k1*d[0] < size and (0 <= y + k1*d[1] < size or board[size*(x + k1*d[0]) + y + k1*d[1]] == -player)):
 
                 # closed
-                elif (k2 == 0 and (x + k1*d[0] >= size or x + k1*d[0] < 0 or y + k1*d[1] >= size or y + k1*d[1] < 0 or board[size*(x + k1*d[0]) + y + k1*d[1]] == -p)) or \
-                     (k1 == 0 and (x - k2*d[0] >= size or x - k2*d[0] < 0 or y - k2*d[1] >= size or y - k2*d[1] < 0 or board[size*(x - k2*d[0]) + y - k2*d[1]] == -p)):
-                    threats[i][0] += l
+                elif (k2 == 1 and (x + k1*d[0] >= size or x + k1*d[0] < 0 or y + k1*d[1] >= size or y + k1*d[1] < 0 or board[size*(x + k1*d[0]) + y + k1*d[1]] == -p)) or \
+                     (k1 == 1 and (x - k2*d[0] >= size or x - k2*d[0] < 0 or y - k2*d[1] >= size or y - k2*d[1] < 0 or board[size*(x - k2*d[0]) + y - k2*d[1]] == -p)):
+                    print("closed p2")
+                    if l == 3:
+                       print("four")
+                       threats[i][0] += 100
+                    else:
+                        threats[i][0] += l - 1
 
                 # Sort moves and retun top 
                 threats = sorted(threats)[::-1]
                 #print(threats)
                 return [m for s, m in threats[:len(threats)//2 + 1]]
 
-    def threat_space_shape_search(self, board, size, in_a_row, player, moves):
-
-        ####### MIGHT BE EASIER TO ITERATE OVER SHAPES THAN TO DO TO IT IN GENERAL
-        for i in range(len(moves)):
-            x, y = moves[i]
+    def threat_space_test(self, board, size, in_a_row, moves):
+        counted = set()
+        directions = ((1, 0), (0, 1), (1, 1), (-1, 1))
+        for i, j in moves:
+            p = 1 #### Player 1 check
+            if (i, j) not in counted:
+                if board[size*i + j] == 0:
+                    for d in directions:
+                        l, k1, k2 = 0, 1, 1
+                        while 0 <= i + k1*d[0] < size and 0 <= j + k1*d[1] < size and board[size*(i + k1*d[0]) + j + k1*d[1]] == p:
+                            l += 1
+                            k1 += 1
+                        while 0 <= i - k2*d[0] < size and 0 <= j - k2*d[1] < size and board[size*(i - k2*d[0]) + j - k2*d[1]] == p:
+                            l += 1
+                            k2 += 1
+                        if l >= 2:
+                            #print(i, j, ((l)))
+                            counted.add((i, j))
+            if (i, j) not in counted:
+                p = -1 #### Player 2 check
+                if board[size*i + j] == 0:
+                    for d in directions:
+                        l, k1, k2 = 0, 1, 1
+                        while 0 <= i + k1*d[0] < size and 0 <= j + k1*d[1] < size and board[size*(i + k1*d[0]) + j + k1*d[1]] == p:
+                            l += 1
+                            k1 += 1
+                        while 0 <= i - k2*d[0] < size and 0 <= j - k2*d[1] < size and board[size*(i - k2*d[0]) + j - k2*d[1]] == p:
+                            l += 1
+                            k2 += 1
+                        if l >= 2:
+                            #print(i, j, ((l)))
+                            counted.add((i, j))
+        """    
+        for i in range(size):
+            for j in range(size):
+                if (i, j) in counted:
+                    print('H ', end='')
+                else:
+                    print(board[size*i + j], end=' ')
+            print()
+        print('###########################################')
+        for i in range(size):
+            for j in range(size):
+                print(board[size*i + j], end=' ')
+            print()
+        print(counted)
+        """
+        if list(counted) == []:
+            return moves
+        return list(counted)
+        
+    
 
 
 
@@ -346,7 +428,7 @@ class Agent:
 if __name__ == '__main__':
     size = 10
     in_a_row = 5
-    max_depth = 6
+    max_depth = 8
     radius = 1
 
     game = Gomoku(size, in_a_row)
