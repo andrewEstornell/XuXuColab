@@ -450,7 +450,8 @@ if __name__ == '__main__':
             break
         
         print("Player 2")
-        move2 = agent2.get_best_move(game.board, game.size, game.in_a_row)
+        #move2 = agent2.get_best_move(game.board, game.size, game.in_a_row)
+        move2 = tuple([int(i) for i in input("x y: ").split()])
         game.make_move(game.board, game.size, move2, -1)
         game.display_board(game.board, game.size)
         if game.is_winning_move(game.board, game.size, game.in_a_row, -1, move2):
