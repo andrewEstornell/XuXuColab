@@ -67,8 +67,19 @@ class Gomoku:
         
     def display_board(self, board, size):
         # Prints the board out to the terminal
+        print('  ', end='')
         for i in range(size):
-            print('|', end='')
+            if i < 10:
+                print(str(i) + " ", end='')
+            else:
+                print(str(i) + " ", end='')
+        print()
+
+        for i in range(size):
+            if i < 10:
+                print(str(i) + '|', end='')
+            else:
+                print(str(i) + '|', end='')
             for j in range(size):
                 if board[size*i + j] == 1:
                     print('X|', end='')
@@ -76,8 +87,15 @@ class Gomoku:
                     print('O|', end='')
                 else:
                     print('_|', end='')
-            print('')        
+            print(i)   
 
+        print('  ', end='')
+        for i in range(size):
+            if i < 10:
+                print(str(i) + " ", end='')
+            else:
+                print(str(i) + " ", end='')
+        print()
     def make_move(self, board, size, move, player):
         # Validates the move then makes it
         if 0 <= move[0] < size and 0 <= move[1] < size and board[size*move[0] + move[1]] == 0:
@@ -116,7 +134,7 @@ class Agent:
         # Other depths return only the value of the best move
         if depth == 0:
             moves = self.get_valid_moves(board, size)
-            moves = self.threat_space_test(board, size, in_a_row, moves)
+            moves = self.threat_space_test(board, size, in_a_row, self.player, moves)
             # Ranks all moves with a score, then returns the highest scored move
             scores = sorted([
                 (self.mini(board, size, in_a_row, depth + 1, alpha, beta, move), move) for move in moves
@@ -154,7 +172,7 @@ class Agent:
             return 0
         # Select only the moves with actual threats
         else:
-            moves = self.threat_space_test(board, size, in_a_row, moves)
+            moves = self.threat_space_test(board, size, in_a_row, self.player, moves)
         best_val = float('-inf')
         # Check each move for its value
         for move in moves:
@@ -198,7 +216,7 @@ class Agent:
             return 0
         else:
             # Remove moves that have no threat value
-            moves = self.threat_space_test(board, size, in_a_row, moves)
+            moves = self.threat_space_test(board, size, in_a_row, -self.player, moves)
         for move in moves:
             # Recursive call to our response to the opponents move
             val = self.maxi(board, size, in_a_row, depth + 1, alpha, beta, move)
@@ -364,38 +382,120 @@ class Agent:
                 #print(threats)
                 return [m for s, m in threats[:len(threats)//2 + 1]]
 
-    def threat_space_test(self, board, size, in_a_row, moves):
+    def threat_space_test(self, board, size, in_a_row, player, moves):
+        ########################################################
+        ########################################################
+        ######## BAORDS SHOULD KEEP TRACK OF THREATS ###########
+        ########################################################
+        ########################################################
+
         counted = set()
         directions = ((1, 0), (0, 1), (1, 1), (-1, 1))
+
+        self_threat_2 = set()
+        self_threat_3 = set()
+
+        opt_threat_2 = set()
+        opt_threat_3 = set()
+        opt_4s = []
+        
         for i, j in moves:
-            p = 1 #### Player 1 check
+            p = player #### Player 1 check
             if (i, j) not in counted:
-                if board[size*i + j] == 0:
-                    for d in directions:
-                        l, k1, k2 = 0, 1, 1
-                        while 0 <= i + k1*d[0] < size and 0 <= j + k1*d[1] < size and board[size*(i + k1*d[0]) + j + k1*d[1]] == p:
-                            l += 1
-                            k1 += 1
-                        while 0 <= i - k2*d[0] < size and 0 <= j - k2*d[1] < size and board[size*(i - k2*d[0]) + j - k2*d[1]] == p:
-                            l += 1
-                            k2 += 1
-                        if l >= 2:
-                            #print(i, j, ((l)))
-                            counted.add((i, j))
+                for d in directions:
+                    l, k1, k2 = 0, 1, 1
+                    while 0 <= i + k1*d[0] < size and 0 <= j + k1*d[1] < size and board[size*(i + k1*d[0]) + j + k1*d[1]] == p:
+                        l += 1
+                        k1 += 1
+                    while 0 <= i - k2*d[0] < size and 0 <= j - k2*d[1] < size and board[size*(i - k2*d[0]) + j - k2*d[1]] == p:
+                        l += 1
+                        k2 += 1
+                    if l >= 2:
+                        #print(i, j, ((l)))
+                        if l == 4:
+                            """
+                            print("Four")
+                            print((i, j))
+                            for ii in range(size):
+                                print('|', end='')
+                                for jj in range(size):
+                                    b = board[size*ii + jj]
+                                    if ii == i and jj == j:
+                                        print('H|', end='')
+                                    elif b == 0:
+                                        print('_|' , end='')
+                                    elif b == 1:
+                                        print('X|', end='')
+                                    elif b == -1:
+                                        print('O|', end='')
+                                print('')
+                            """
+                            return [(i, j)]
+                        elif l == 3:
+                            if k1 == 1 and 0 <= i  - k2*d[0] < size and 0 <= j - k2*d[1] < size and board[size*(i - k2*d[0]) + j - k2*d[1]] == 0 or \
+                               k2 == 1 and 0 <= i  + k1*d[0] < size and 0 <= j + k1*d[1] < size and board[size*(i + k1*d[0]) + j + k1*d[1]] == 0:
+                                self_threat_3.add((i, j))
+                                #print("threat 3")
+                                #self.show_board_with_threat(board, (i, j))
+                            else:
+                                self_threat_2.add((i, j))
+                                #print("threat 2")
+                                #self.show_board_with_threat(board, (i, j))
+                        elif l == 2:
+                            if k1 == 1 and 0 <= i  - k2*d[0] < size and 0 <= j - k2*d[1] < size and board[size*(i - k2*d[0]) + j - k2*d[1]] == 0 or \
+                               k2 == 1 and 0 <= i  + k1*d[0] < size and 0 <= j + k1*d[1] < size and board[size*(i + k1*d[0]) + j + k1*d[1]] == 0:
+                                self_threat_2.add((i, j))
+                                #print("threat 2")
+                                #self.show_board_with_threat(board, (i, j))
+                        counted.add((i, j))
+                        
             if (i, j) not in counted:
-                p = -1 #### Player 2 check
-                if board[size*i + j] == 0:
-                    for d in directions:
-                        l, k1, k2 = 0, 1, 1
-                        while 0 <= i + k1*d[0] < size and 0 <= j + k1*d[1] < size and board[size*(i + k1*d[0]) + j + k1*d[1]] == p:
-                            l += 1
-                            k1 += 1
-                        while 0 <= i - k2*d[0] < size and 0 <= j - k2*d[1] < size and board[size*(i - k2*d[0]) + j - k2*d[1]] == p:
-                            l += 1
-                            k2 += 1
-                        if l >= 2:
-                            #print(i, j, ((l)))
-                            counted.add((i, j))
+                p = -player #### Player 2 check
+                for d in directions:
+                    l, k1, k2 = 0, 1, 1
+                    while 0 <= i + k1*d[0] < size and 0 <= j + k1*d[1] < size and board[size*(i + k1*d[0]) + j + k1*d[1]] == p:
+                        l += 1
+                        k1 += 1
+                    while 0 <= i - k2*d[0] < size and 0 <= j - k2*d[1] < size and board[size*(i - k2*d[0]) + j - k2*d[1]] == p:
+                        l += 1
+                        k2 += 1
+                    if l >= 2:
+                        if l == 4:
+                            opt_4s.append((i, j))
+                        elif l == 3:
+                            if k1 == 1 and 0 <= i  - k2*d[0] < size and 0 <= j - k2*d[1] < size and board[size*(i - k2*d[0]) + j - k2*d[1]] == 0 or \
+                               k2 == 1 and 0 <= i  + k1*d[0] < size and 0 <= j + k1*d[1] < size and board[size*(i + k1*d[0]) + j + k1*d[1]] == 0:
+                                opt_threat_3.add((i, j))
+                                #print("threat 3")
+                                #self.show_board_with_threat(board, (i, j))
+                            else:
+                                opt_threat_2.add((i, j))
+                                #print("threat 2")
+                                #self.show_board_with_threat(board, (i, j))
+                        elif l == 2:
+                            if k1 == 1 and 0 <= i  - k2*d[0] < size and 0 <= j - k2*d[1] < size and board[size*(i - k2*d[0]) + j - k2*d[1]] == 0 or \
+                               k2 == 1 and 0 <= i  + k1*d[0] < size and 0 <= j + k1*d[1] < size and board[size*(i + k1*d[0]) + j + k1*d[1]] == 0:
+                                opt_threat_2.add((i, j))
+                                #print("threat 2")
+                                #self.show_board_with_threat(board, (i, j))
+                        counted.add((i, j))
+                
+                    
+        
+        if opt_4s != []:
+            return [opt_4s[0]]
+        self_threat_3 = list(self_threat_3)
+        if self_threat_3 != []:
+            return self_threat_3
+        opt_threat_3 = list(opt_threat_3)
+        if opt_threat_3 != []:
+            return opt_threat_3
+        self_threat_2 = list(self_threat_2)
+        opt_threat_2 = list(opt_threat_2)
+        if self_threat_2 != [] or opt_threat_2 != []:
+            return self_threat_2 + opt_threat_2
+        if list(counted) == []:
+            return moves
         """    
         for i in range(size):
             for j in range(size):
@@ -411,12 +511,27 @@ class Agent:
             print()
         print(counted)
         """
-        if list(counted) == []:
-            return moves
+        
         return list(counted)
         
     
-
+    def show_board_with_threat(self, board, move):
+        i, j = move
+        print((i, j))
+        for ii in range(size):
+            print('|', end='')
+            for jj in range(size):
+                b = board[size*ii + jj]
+                if ii == i and jj == j:
+                    print('H|', end='')
+                elif b == 0:
+                    print('_|' , end='')
+                elif b == 1:
+                    print('X|', end='')
+                elif b == -1:
+                    print('O|', end='')
+            print('')
+                         
 
 
 
@@ -428,27 +543,17 @@ class Agent:
 if __name__ == '__main__':
     size = 10
     in_a_row = 5
-    max_depth = 8
+    max_depth = 9
     radius = 1
 
     game = Gomoku(size, in_a_row)
     agent1 = Agent(1, max_depth, radius, game)
-    agent2 = Agent(-1, max_depth, radius, game)
+    agent2 = Agent(-1, max_depth - 3, radius, game)
 
     game.board[size*size//2 + size//2] = 1
-    move2 = agent2.get_best_move(game.board, game.size, game.in_a_row)
-    game.make_move(game.board, game.size, move2, -1)
     game.display_board(game.board, game.size)
 
     while True:
-        print("Player 1")
-        move1 = agent1.get_best_move(game.board, game.size, game.in_a_row)
-        game.make_move(game.board, game.size, move1, 1)
-        game.display_board(game.board, game.size)
-        if game.is_winning_move(game.board, game.size, game.in_a_row, 1, move1):
-            print("player1 wins")
-            break
-        
         print("Player 2")
         #move2 = agent2.get_best_move(game.board, game.size, game.in_a_row)
         move2 = tuple([int(i) for i in input("x y: ").split()])
@@ -457,6 +562,16 @@ if __name__ == '__main__':
         if game.is_winning_move(game.board, game.size, game.in_a_row, -1, move2):
             print("player2 wins")
             break
+    
+    
+        print("Player 1")
+        move1 = agent1.get_best_move(game.board, game.size, game.in_a_row)
+        game.make_move(game.board, game.size, move1, 1)
+        game.display_board(game.board, game.size)
+        if game.is_winning_move(game.board, game.size, game.in_a_row, 1, move1):
+            print("player1 wins")
+            break
+    
 
 
 
