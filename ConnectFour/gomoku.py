@@ -1,5 +1,6 @@
 import numpy as np
 import time as time
+import random as rand
 
 
 class Gomoku:
@@ -70,14 +71,14 @@ class Gomoku:
         print('  ', end='')
         for i in range(size):
             if i < 10:
-                print(str(i) + " ", end='')
+                print(' ' + str(i), end='')
             else:
-                print(str(i) + " ", end='')
+                print(str(i) + "", end='')
         print()
 
         for i in range(size):
             if i < 10:
-                print(str(i) + '|', end='')
+                print(str(i) + ' |', end='')
             else:
                 print(str(i) + '|', end='')
             for j in range(size):
@@ -92,10 +93,11 @@ class Gomoku:
         print('  ', end='')
         for i in range(size):
             if i < 10:
-                print(str(i) + " ", end='')
+                print(' ' + str(i), end='')
             else:
-                print(str(i) + " ", end='')
+                print(str(i) + "", end='')
         print()
+    
     def make_move(self, board, size, move, player):
         # Validates the move then makes it
         if 0 <= move[0] < size and 0 <= move[1] < size and board[size*move[0] + move[1]] == 0:
@@ -411,25 +413,10 @@ class Agent:
                         l += 1
                         k2 += 1
                     if l >= 2:
-                        #print(i, j, ((l)))
                         if l == 4:
-                            """
-                            print("Four")
-                            print((i, j))
-                            for ii in range(size):
-                                print('|', end='')
-                                for jj in range(size):
-                                    b = board[size*ii + jj]
-                                    if ii == i and jj == j:
-                                        print('H|', end='')
-                                    elif b == 0:
-                                        print('_|' , end='')
-                                    elif b == 1:
-                                        print('X|', end='')
-                                    elif b == -1:
-                                        print('O|', end='')
-                                print('')
-                            """
+                            #if k1 > 1 and k2 > 2:
+                            #    print("threat 3")
+                            #    self.show_board_with_threat(board, (i, j))
                             return [(i, j)]
                         elif l == 3:
                             if k1 == 1 and 0 <= i  - k2*d[0] < size and 0 <= j - k2*d[1] < size and board[size*(i - k2*d[0]) + j - k2*d[1]] == 0 or \
@@ -437,6 +424,12 @@ class Agent:
                                 self_threat_3.add((i, j))
                                 #print("threat 3")
                                 #self.show_board_with_threat(board, (i, j))
+                            elif k1 > 1 and k2 > 1 and 0 <= i - k2*d[0] < size and 0 <= j - k2*d[1] < size and 0 <= i + k1*d[0] < size and 0 <= j + k1*d[0] < size and \
+                                 board[size*(i - k2*d[0]) + j - k2*d[1]] == 0 and board[size*(i + k1*d[0]) + j + k1*d[1]] == 0:
+                                self_threat_3.add((i, j))
+                                #print("threat 3")
+                                #self.show_board_with_threat(board, (i, j))
+
                             else:
                                 self_threat_2.add((i, j))
                                 #print("threat 2")
@@ -461,6 +454,9 @@ class Agent:
                         k2 += 1
                     if l >= 2:
                         if l == 4:
+                            #if k1 > 1 and k2 > 2:
+                            #    print("threat 3")
+                            #    self.show_board_with_threat(board, (i, j))
                             opt_4s.append((i, j))
                         elif l == 3:
                             if k1 == 1 and 0 <= i  - k2*d[0] < size and 0 <= j - k2*d[1] < size and board[size*(i - k2*d[0]) + j - k2*d[1]] == 0 or \
@@ -468,6 +464,11 @@ class Agent:
                                 opt_threat_3.add((i, j))
                                 #print("threat 3")
                                 #self.show_board_with_threat(board, (i, j))
+                            elif k1 > 1 and k2 > 1 and 0 <= i - k2*d[0] < size and 0 <= j - k2*d[1] < size and 0 <= i + k1*d[0] < size and 0 <= j + k1*d[0] < size and \
+                                 board[size*(i - k2*d[0]) + j - k2*d[1]] == 0 and board[size*(i + k1*d[0]) + j + k1*d[1]] == 0:
+                                 opt_threat_3.add((i, j))
+                                 #print("threat 3")
+                                 #self.show_board_with_threat(board, (i, j)) ###### ADDED GAPPING THREEE #################
                             else:
                                 opt_threat_2.add((i, j))
                                 #print("threat 2")
@@ -495,26 +496,9 @@ class Agent:
         if self_threat_2 != [] or opt_threat_2 != []:
             return self_threat_2 + opt_threat_2
         if list(counted) == []:
-            return moves
-        """    
-        for i in range(size):
-            for j in range(size):
-                if (i, j) in counted:
-                    print('H ', end='')
-                else:
-                    print(board[size*i + j], end=' ')
-            print()
-        print('###########################################')
-        for i in range(size):
-            for j in range(size):
-                print(board[size*i + j], end=' ')
-            print()
-        print(counted)
-        """
-        
+            return rand.sample(moves, len(moves)//4)
         return list(counted)
         
-    
     def show_board_with_threat(self, board, move):
         i, j = move
         print((i, j))
@@ -541,22 +525,23 @@ class Agent:
 
 
 if __name__ == '__main__':
-    size = 10
+    size = 15
     in_a_row = 5
-    max_depth = 9
+    max_depth = 11
     radius = 1
 
     game = Gomoku(size, in_a_row)
     agent1 = Agent(1, max_depth, radius, game)
-    agent2 = Agent(-1, max_depth - 3, radius, game)
+    agent2 = Agent(-1, max_depth, radius, game)
 
-    game.board[size*size//2 + size//2] = 1
+    
+    game.board[size*(size//2) + size//2] = 1
     game.display_board(game.board, game.size)
 
     while True:
         print("Player 2")
-        #move2 = agent2.get_best_move(game.board, game.size, game.in_a_row)
-        move2 = tuple([int(i) for i in input("x y: ").split()])
+        move2 = agent2.get_best_move(game.board, game.size, game.in_a_row)
+        #move2 = tuple([int(i) for i in input("x y: ").split()])
         game.make_move(game.board, game.size, move2, -1)
         game.display_board(game.board, game.size)
         if game.is_winning_move(game.board, game.size, game.in_a_row, -1, move2):
