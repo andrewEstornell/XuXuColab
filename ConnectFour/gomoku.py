@@ -136,7 +136,7 @@ class Agent:
         # Other depths return only the value of the best move
         if depth == 0:
             moves = self.get_valid_moves(board, size)
-            moves = self.threat_space_test(board, size, in_a_row, self.player, moves)
+            moves = self.threat_space_test(board, size, in_a_row, self.player, moves)[1:]
             # Ranks all moves with a score, then returns the highest scored move
             scores = sorted([
                 (self.mini(board, size, in_a_row, depth + 1, alpha, beta, move), move) for move in moves
@@ -163,7 +163,7 @@ class Agent:
         # Check if our evalutation is complete
         # If so return a heursitic evaulation of the current board
         if depth == self.max_depth:
-            val = -self.heuristic_eval(board, size, -self.player)
+            val = -self.heuristic_eval(board, size, in_a_row, -self.player)
             self.hash_table[tuple(board)] = val
             board[size*last_move[0] + last_move[1]] = 0
             return val
@@ -174,7 +174,7 @@ class Agent:
             return 0
         # Select only the moves with actual threats
         else:
-            moves = self.threat_space_test(board, size, in_a_row, self.player, moves)
+            moves = self.threat_space_test(board, size, in_a_row, self.player, moves)[1:]
         best_val = float('-inf')
         # Check each move for its value
         for move in moves:
@@ -205,7 +205,7 @@ class Agent:
         # Check if we are done searching
         # If we are, return a heuristic evaluation of the current position
         if depth == self.max_depth:
-            val = self.heuristic_eval(board, size, self.player)
+            val = self.heuristic_eval(board, size, in_a_row, self.player)
             self.hash_table[tuple(board)] = val
             board[size*last_move[0] + last_move[1]] = 0
             return val
@@ -218,7 +218,7 @@ class Agent:
             return 0
         else:
             # Remove moves that have no threat value
-            moves = self.threat_space_test(board, size, in_a_row, -self.player, moves)
+            moves = self.threat_space_test(board, size, in_a_row, -self.player, moves)[1:]
         for move in moves:
             # Recursive call to our response to the opponents move
             val = self.maxi(board, size, in_a_row, depth + 1, alpha, beta, move)
@@ -232,12 +232,14 @@ class Agent:
         board[size*last_move[0] + last_move[1]] = 0
         return best_val
         
-    def heuristic_eval(self, board, size, player):
+    def heuristic_eval(self, board, size, in_a_row, player):
         # Return some value that reprsents a 'good' guess of the value of the current position
 
         # Current version only checks values for the given player
-        return 0
-        val = 0
+        moves = self.get_valid_moves(board, size)
+        val = self.threat_space_test(board, size, in_a_row, player, moves)[0]
+        return val
+        """
         for i in range(size):
             for j in range(size):
                 # If the current square is occupied by the player
@@ -260,6 +262,7 @@ class Agent:
                         val += k*k
                         k+= 1
         return val
+        """
 
     def get_valid_moves(self, board, size):
         moves = []
@@ -417,7 +420,7 @@ class Agent:
                             #if k1 > 1 and k2 > 2:
                             #    print("threat 3")
                             #    self.show_board_with_threat(board, (i, j))
-                            return [(i, j)]
+                            return [4, (i, j)]
                         elif l == 3:
                             if k1 == 1 and 0 <= i  - k2*d[0] < size and 0 <= j - k2*d[1] < size and board[size*(i - k2*d[0]) + j - k2*d[1]] == 0 or \
                                k2 == 1 and 0 <= i  + k1*d[0] < size and 0 <= j + k1*d[1] < size and board[size*(i + k1*d[0]) + j + k1*d[1]] == 0:
@@ -484,20 +487,20 @@ class Agent:
                     
         
         if opt_4s != []:
-            return [opt_4s[0]]
+            return [3.5, opt_4s[0]]
         self_threat_3 = list(self_threat_3)
         if self_threat_3 != []:
-            return self_threat_3
+            return [3] + self_threat_3
         opt_threat_3 = list(opt_threat_3)
         if opt_threat_3 != []:
-            return opt_threat_3
+            return [2.5] + opt_threat_3
         self_threat_2 = list(self_threat_2)
         opt_threat_2 = list(opt_threat_2)
         if self_threat_2 != [] or opt_threat_2 != []:
-            return self_threat_2 + opt_threat_2
+            return [2] + self_threat_2 + opt_threat_2
         if list(counted) == []:
-            return rand.sample(moves, len(moves)//4)
-        return list(counted)
+            return [0] + rand.sample(moves, len(moves)//4)
+        return [0] + list(counted)
         
     def show_board_with_threat(self, board, move):
         i, j = move
